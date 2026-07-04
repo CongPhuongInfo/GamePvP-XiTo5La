@@ -631,6 +631,18 @@ Public Class Form1
                 counts(s) = 0
             End If
         Next s
+
+        ' Host không tự nhận lại gói tin Broadcast của chính mình, nên phải tự cập nhật
+        ' perSeatCardCount ở đây để CardsRow_Paint vẽ đúng số lá úp cho MỌI seat (kể cả
+        ' các Client khác), không chỉ riêng seat 0 (đã được set qua ApplyMyCards ở trên).
+        If isHost Then
+            Dim s2 As Integer
+            For s2 = 0 To 3
+                perSeatCardCount(s2) = counts(s2)
+            Next s2
+            RefreshPlayerCards()
+        End If
+
         hub.Broadcast("XT5_CARDCOUNT:" & counts(0).ToString() & "|" & counts(1).ToString() & "|" & counts(2).ToString() & "|" & counts(3).ToString())
     End Sub
 

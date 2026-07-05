@@ -746,7 +746,32 @@ Public Class Form1
         If countdownTimer IsNot Nothing Then countdownTimer.Stop()
 
         Dim activeCount As Integer = game.ActiveSeats().Count
-        If activeCount <= 1 OrElse game.CurrentStreet >= XiTo5LaGame.STREET_COUNT Then
+
+        If activeCount = 0 Then
+            ' Tất cả (kể cả trường hợp Host chơi 1 mình rồi tự Bỏ bài) đều đã Fold - không còn
+            ' ai để so bài. Kết thúc ván ngay, không gọi ComputeShowdown/EvaluateHand (sẽ crash
+            ' vì không có bộ bài nào đủ 5 lá để phân loại).
+            lastRevealEntriesRaw = ""
+            hub.Broadcast("XT5_REVEAL:")
+            StartRevealAnimation("")
+            Return
+        End If
+
+        If activeCount = 1 Then
+            ' Chỉ còn đúng 1 người (mọi người khác đã Fold, hoặc Host đang chơi 1 mình): không còn
+            ' ai để so bài tiếp, nhưng nếu bài chưa đủ 5 lá thì KHÔNG được gọi thẳng DoShowdown vì
+            ' EvaluateHand yêu cầu đúng 5 lá (truy cập cards(4)) -> IndexOutOfRangeException.
+            ' Ở đây tự động rút nốt cho đủ 5 lá (không cần cược thêm vì không có đối thủ để so),
+            ' rồi mới so bài như bình thường để người chơi vẫn thấy được bộ bài cuối + hiệu ứng.
+            Dim soleSeat As Integer = game.ActiveSeats()(0)
+            Do While game.DealtCards(soleSeat).Count < XiTo5LaGame.HAND_SIZE
+                game.DealNextCard()
+            Loop
+            DoShowdown()
+            Return
+        End If
+
+        If game.CurrentStreet >= XiTo5LaGame.STREET_COUNT Then
             DoShowdown()
         Else
             game.DealNextCard()
@@ -1405,6 +1430,19 @@ Public Class Form1
         Dim hasBet As Boolean = (perSeatBetAmount(mySeat) >= 0)
         Dim showdownCards As XiTo5LaGame.CardInfo() = perSeatCards(mySeat)
         Dim myList As List(Of XiTo5LaGame.CardInfo) = perSeatMyCardList(mySeat)
+
+        ' Gợi ý bộ bài đang có (đôi, thú, sám cô, tứ quý, gần thùng, gần sảnh...), chỉ hiện
+        ' khi đang thực sự cầm bài của mình và chưa lộ bài kiểu showdown.
+        If showdownCards Is Nothing AndAlso myList IsNot Nothing AndAlso myList.Count > 0 AndAlso Not perSeatFolded(mySeat) Then
+            Dim hintText As String = XiTo5LaGame.DescribeHandProgress(myList)
+            If hintText <> "" Then
+                Using hintFont As New Font("Segoe UI", 9.5!, FontStyle.Bold)
+                    Using hintBrush As New SolidBrush(Color.FromArgb(255, 230, 160))
+                        g.DrawString("Bài của bạn: " & hintText, hintFont, hintBrush, 12, 6)
+                    End Using
+                End Using
+            End If
+        End If
 
         Dim i As Integer
         For i = 0 To 4

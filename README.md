@@ -1,30 +1,80 @@
-# GamePvP-XiTo5La — Xì Tố 5 Lá Ăn Điểm
+# Xì Tố 5 Lá Ăn Điểm
 
-Chuyển thể từ kiến trúc mạng của "Vòng Quay Rồng" sang game bài kiểu "3 cây ăn điểm"
-nhưng dùng **5 lá bài** và xếp hạng theo luật Xì Tố (Mậu thầu → Đôi → Thú → Sám cô →
-Sảnh → Thùng → Cù lũ → Tứ quý → Thùng phá sảnh).
+<p align="center">
+  <img src="GameXito5la-logo.png" width="800">
+</p>
 
-## Cách chơi 1 ván
-1. Host bấm **"Bắt đầu ván mới"** → mọi người có 20 giây để chọn số điểm cược (50–200)
-   rồi bấm **"Khoá cược"**.
-2. Hết giờ (hoặc Host bấm **"Chia bài & So bài"** sớm), Host tự động chia ngẫu nhiên
-   5 lá cho từng người đã cược và lật cùng lúc.
-3. Mọi người đã cược được so bài theo từng cặp (kiểu "ăn điểm"): ai bài mạnh hơn ăn
-   của người kia đúng bằng **mức cược nhỏ hơn** trong 2 người; hoà thì không đổi điểm
-   (gần như không xảy ra vì mỗi lá bài là độc nhất trong bộ 52 lá).
-4. Điểm được cộng/trừ ngay, Host có thể bắt đầu ván mới.
+Trò chơi bài Xì Tố 5 Lá (5-Card Stud) nhiều người chơi qua mạng LAN hoặc
+Online. Mỗi ván chia 4 vòng bài, sau mỗi vòng người chơi chọn cược thêm
+hoặc bỏ bài. Ai bài mạnh hơn thắng điểm của đối thủ. Kiến trúc
+star-topology (NetworkHub.vb / NetworkPeer.vb), Host chia bài và tính kết
+quả, Client chỉ nhận dữ liệu từ Host.
 
-Host có thể bấm chuột phải vào thẻ 1 người chơi để nạp/trừ điểm thủ công (đổi ngược
-điểm của Host) — dùng khi cần "đổi tiền mặt" ngoài đời.
+# Các tính năng chính
+- Hỗ trợ nhiều người chơi cùng lúc qua mạng LAN/Online
+- 4 vòng cược (2 → 3 → 4 → 5 lá), mỗi vòng cược thêm hoặc bỏ bài
+- **Bỏ bài (Fold)** mất luôn điểm đã cược trước đó, không hoàn lại
+- So bài đầy đủ 10 loại, phân định bằng chất khi hòa
+- Mỗi người bắt đầu với **1000 điểm**, cược **50–200 điểm/vòng**
+- Hiển thị gợi ý bộ bài đang hình thành trong khi chưa đủ 5 lá
+- Sprite lá bài từ thư mục `Assets/Cards/`
 
-## File trong dự án
-- `XiTo5LaGame.vb` — logic thuần: bộ bài, xếp hạng 5 lá, tính điểm ăn/thua.
-- `Form1.vb` — giao diện, state machine ván đấu, giao thức mạng (`XT5_...`).
-- `NetworkHub.vb` / `NetworkPeer.vb` — tái sử dụng nguyên vẹn từ dự án Vòng Quay Rồng.
-- `Program.vb` — điểm khởi động ứng dụng.
-- `buildexe_xito5la.bat` — build bằng `vbc.exe` (không cần Visual Studio).
-- `Assets\Cards\` — nơi đặt sprite lá bài (xem `Assets\Cards\HUONG_DAN_SPRITE.md`).
+# Thứ tự bài (yếu → mạnh)
+| Hạng | Loại bài |
+|------|----------|
+| 0 | Mậu thầu (bài rác) |
+| 1 | Đôi |
+| 2 | Thú (2 đôi) |
+| 3 | Sám cô |
+| 4 | Sảnh |
+| 5 | Thùng (cùng chất) |
+| 6 | Cù lũ (Sám cô + Đôi) |
+| 7 | Tứ quý |
+| 8 | Thùng phá sảnh |
+| 9 | Sảnh Rồng (10-J-Q-K-A cùng chất) |
 
-## Build
-Chạy `buildexe_xito5la.bat`. File `.exe` sinh ra cần được đặt cùng thư mục với
-`Assets\Cards\` (nếu muốn hiện ảnh lá bài thật thay vì hình vẽ chữ+ký hiệu mặc định).
+> Khi 2 bộ cùng loại: so điểm phụ (TieBreak). Nếu vẫn bằng: chất cao hơn thắng (Chuồn < Rô < Cơ < Bích).
+
+# Luật chơi
+| Tình huống | Quy tắc |
+|------------|---------|
+| Bắt đầu ván | Host chia 2 lá cho mỗi người, không cần cược trước |
+| Mỗi vòng | Từng người chọn **Cược thêm** (50–200 điểm) hoặc **Bỏ bài** |
+| Bỏ bài | Mất luôn toàn bộ điểm đã cược từ đầu ván, không được so bài |
+| Sau vòng 4 | Những người chưa bỏ bài lật bài so — ai mạnh hơn ăn điểm tương ứng |
+| Tính thưởng | Người thắng ăn điểm bằng **mức cược nhỏ hơn** trong 2 người (so từng cặp) |
+| Hòa | Không đổi điểm |
+
+# Cách build
+Yêu cầu: **.NET Framework 4.x** đã cài sẵn trên Windows.
+
+```
+buildexe_xito5la.bat
+```
+
+File `.exe` xuất ra cùng thư mục với tên `GamePvP-XiTo5La.exe`.
+
+> Đặt thư mục `Assets/Cards/` (chứa sprite lá bài: `AS.png`, `KH.png`, `10D.png`, v.v.)
+> cạnh file `.exe` để hiển thị hình lá bài. Game vẫn chạy nếu thiếu ảnh.
+
+# Cách chơi
+
+**Host (tạo phòng):**
+1. Chọn **Tạo phòng** → nhập port → bấm Host
+2. Chờ người chơi khác vào phòng
+3. Bấm **Chia bài** để bắt đầu mỗi ván mới
+
+**Client (vào phòng):**
+1. Chọn **Vào phòng** → nhập IP của Host và port → bấm Join
+2. Chờ Host chia bài
+3. Mỗi vòng: bấm **Cược thêm** (nhập số điểm 50–200) hoặc **Bỏ bài**
+
+# Cấu trúc file
+| File | Vai trò |
+|------|---------|
+| `XiTo5LaGame.vb` | Logic game: chia bài, đánh giá 10 loại bộ bài, cược, so bài, tính điểm |
+| `Form1.vb` | Giao diện, hiển thị lá bài, điều khiển cược, chat |
+| `NetworkHub.vb` | Phía Host: quản lý nhiều kết nối Client (star-topology) |
+| `NetworkPeer.vb` | Phía Client: kết nối đến Host |
+| `Program.vb` | Entry point |
+| `buildexe_xito5la.bat` | Script build bằng vbc.exe |

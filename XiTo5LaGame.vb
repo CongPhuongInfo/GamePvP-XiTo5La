@@ -364,6 +364,97 @@ Public Class XiTo5LaGame
         Return hand
     End Function
 
+    ''' <summary>Ten ngan gon cua 1 rank (2..14), dung cho hien thi goi y bai dang co.</summary>
+    Public Shared Function RankName(rank As Integer) As String
+        Select Case rank
+            Case 14 : Return "A"
+            Case 13 : Return "K"
+            Case 12 : Return "Q"
+            Case 11 : Return "J"
+            Case Else : Return rank.ToString()
+        End Select
+    End Function
+
+    ''' <summary>Mo ta bo dang co TRONG LUC CHUA DU 5 LA (2, 3 hoac 4 la): tim bo da "thanh hinh"
+    ''' (doi / thu / sam co / tu quy) trong so cac la hien co, cong them goi y dang rut "gan Thung"
+    ''' (cung chat) hoac "gan Sanh" (cac quan gan nhau, chua trung). Khi da du 5 la thi goi thang
+    ''' EvaluateHand va tra ve ten loai bai chinh thuc (CategoryNames). Ham nay CHI de hien thi cho
+    ''' nguoi choi xem bai cua CHINH MINH, khong dung de tinh diem.</summary>
+    Public Shared Function DescribeHandProgress(cards As List(Of CardInfo)) As String
+        If cards Is Nothing OrElse cards.Count = 0 Then Return ""
+
+        If cards.Count = 5 Then
+            Dim finalHand As HandInfo = EvaluateHand(cards.ToArray())
+            Return CategoryNames(finalHand.Category)
+        End If
+
+        Dim countByRank As New Dictionary(Of Integer, Integer)
+        Dim c As CardInfo
+        For Each c In cards
+            If countByRank.ContainsKey(c.Rank) Then
+                countByRank(c.Rank) += 1
+            Else
+                countByRank(c.Rank) = 1
+            End If
+        Next c
+
+        Dim groups As New List(Of KeyValuePair(Of Integer, Integer))
+        Dim kv As KeyValuePair(Of Integer, Integer)
+        For Each kv In countByRank
+            groups.Add(kv)
+        Next kv
+        groups.Sort(Function(x, y)
+                        If x.Value <> y.Value Then Return y.Value.CompareTo(x.Value)
+                        Return y.Key.CompareTo(x.Key)
+                    End Function)
+
+        Dim madeText As String = ""
+        If groups(0).Value = 4 Then
+            madeText = "Tứ quý " & RankName(groups(0).Key)
+        ElseIf groups(0).Value = 3 Then
+            madeText = "Sám cô " & RankName(groups(0).Key)
+        ElseIf groups(0).Value = 2 AndAlso groups.Count > 1 AndAlso groups(1).Value = 2 Then
+            madeText = "Thú (2 đôi) " & RankName(groups(0).Key) & "-" & RankName(groups(1).Key)
+        ElseIf groups(0).Value = 2 Then
+            madeText = "Đôi " & RankName(groups(0).Key)
+        End If
+
+        Dim drawHints As New List(Of String)
+
+        ' Goi y cung chat -> co the ra Thung/Thung pha sanh.
+        Dim allSameSuit As Boolean = True
+        Dim i As Integer
+        For i = 1 To cards.Count - 1
+            If cards(i).Suit <> cards(0).Suit Then allSameSuit = False
+        Next i
+        If allSameSuit AndAlso cards.Count >= 3 Then
+            drawHints.Add("cùng chất " & cards.Count.ToString() & " lá (có thể ra Thùng)")
+        End If
+
+        ' Goi y gan Sanh: tat ca cac la khac rank nhau (khong dinh doi) va nam gon trong khoang 5 quan.
+        Dim distinct As List(Of Integer) = countByRank.Keys.OrderBy(Function(x) x).ToList()
+        If distinct.Count = cards.Count AndAlso cards.Count >= 3 Then
+            Dim span As Integer = distinct(distinct.Count - 1) - distinct(0)
+            Dim isLowAceCandidate As Boolean = distinct.Contains(14) AndAlso distinct(0) <= 5 AndAlso distinct(distinct.Count - 2) <= 5
+            If span <= 4 Then
+                drawHints.Add("gần Sảnh " & RankName(distinct(0)) & "-" & RankName(distinct(distinct.Count - 1)))
+            ElseIf isLowAceCandidate Then
+                drawHints.Add("gần Sảnh thấp (A-2-3-4-5)")
+            End If
+        End If
+
+        Dim result As String = madeText
+        If drawHints.Count > 0 Then
+            If result <> "" Then
+                result &= " · " & String.Join(", ", drawHints)
+            Else
+                result = String.Join(", ", drawHints)
+            End If
+        End If
+        If result = "" Then result = "Chưa có bộ đặc biệt"
+        Return result
+    End Function
+
     ''' <summary>So sanh 2 bo bai: dương neu a mạnh hơn b, âm nếu b mạnh hơn a, 0 nếu hòa tuyệt đối
     ''' (gần như không xảy ra vì mỗi lá bài là độc nhất trong bộ 52 lá).</summary>
     Public Shared Function CompareHandInfo(a As HandInfo, b As HandInfo) As Integer
